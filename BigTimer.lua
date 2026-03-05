@@ -1,5 +1,5 @@
 --[[
-    BigTimer.lua  v1.4
+    BigTimer.lua  v1.5
     WoW 1.12 / Lua 5 -- requires BigWigs with Pulltimer plugin
 --]]
 
@@ -118,7 +118,7 @@ UpdateVisibility = function()
 end
 
 -- MakeButton always wires OnEnter/OnLeave into the hover counter.
--- Pass nil for tip on buttons that set their own OnEnter afterwards.
+-- Pass nil for tip on buttons that override OnEnter afterwards.
 local function MakeButton(label, tip)
     local btn = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
     btn:SetWidth(BTN_W)
@@ -194,7 +194,7 @@ local function BuildSettingsFrame()
         bVal:SetText(v.." min  ("..(v*60).."s)")
     end)
 
-    -- Scale slider (50% to 200% in 1% steps)
+    -- Scale slider (25% to 200% in 1% steps)
     local sHdr = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     sHdr:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -84)
     sHdr:SetText("Scale:")
@@ -202,7 +202,7 @@ local function BuildSettingsFrame()
     local sSl = CreateFrame("Slider","BigTimerScaleSlider",f,"OptionsSliderTemplate")
     sSl:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -100)
     sSl:SetWidth(SET_W - 20)
-    sSl:SetMinMaxValues(50, 200)
+    sSl:SetMinMaxValues(25, 200)
     sSl:SetValueStep(1)
     sSl:SetValue(BigTimerDB.scalePct)
     getglobal("BigTimerScaleSliderLow"):SetText("Smaller")
@@ -326,6 +326,11 @@ local function OnLoad()
     end)
     brkBtn:SetScript("OnClick", function() FirePull(BigTimerDB.breakMins*60, true) end)
     buttons[table.getn(buttons)+1] = brkBtn
+
+    -- Ready check button
+    local readyBtn = MakeButton("Ready", "Send a ready check to the raid")
+    readyBtn:SetScript("OnClick", function() DoReadyCheck() end)
+    buttons[table.getn(buttons)+1] = readyBtn
 
     local xBtn = MakeButton("X",
         "Cancel pull timer\n"..
