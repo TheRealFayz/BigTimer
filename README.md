@@ -7,6 +7,7 @@ Requires the **BigWigs** addon with its Pulltimer plugin enabled.
 
 ## Requirements
 | **BigWigs** | Must be loaded and enabled |
+
 | **BigWigs Pulltimer plugin** | Must be enabled within BigWigs options |
 
 ## Usage
