@@ -2,14 +2,49 @@
 
 ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer.png?raw=true)
 
-A quick-access pull timer toolbar for **World of Warcraft 1.12**.  
+A quick-access pull timer toolbar for **World of Warcraft 1.12** (Turtle WoW), with built-in raid target marking.
 Requires the **BigWigs** addon with its Pulltimer plugin enabled.
 
 ## Requirements
+| Requirement | Notes |
+|---|---|
 | **BigWigs** | Must be loaded and enabled |
-
 | **BigWigs Pulltimer plugin** | Must be enabled within BigWigs options |
 
-## Usage
-The bar appears automatically when you are **in a raid group with lead or assist**.  
-It hides itself when you are not in a raid, or do not have lead/assist.
+## When the bar shows up
+| Group | Who sees it |
+|---|---|
+| **Raid** | Raid leader or assist |
+| **Party** | Party leader |
+
+The bar hides itself when you are not in a group, or don't have the role above.
+
+## Buttons
+| Button | What it does |
+|---|---|
+| **10 / 15 / 20 / 30 / 60** | Starts a BigWigs pull timer for that many seconds |
+| **Break** | Starts a break timer (length is set in Settings). BigWigs always labels the bar "Pull" |
+| **Ready** | Sends a ready check |
+| **X** | Cancels the pull timer. If no timer is running, BigWigs starts a 6 second pull instead |
+| **Cfg** | Opens the settings window |
+
+## Raid Marks
+A strip of the 8 raid target icons sits inside the bar, in order from Skull to Star (Skull is always on the left, or on top when the bar is vertical).
+
+* **Left-click** an icon to put that mark on your target
+* **Left-click the same icon again** to remove it
+* **Right-click** any icon to clear your target's mark
+
+The icons scale to fit the length of the bar and share its border.
+
+## Settings
+Click **Cfg** to open the settings window. You can drag it anywhere and close it with Escape.
+
+* **Break Duration**: 1 to 10 minutes
+* **Scale**: 25% to 200%. The bar stays in place while it resizes
+* **Horizontal / Vertical**: switches the bar's layout
+* **Lock Bar**: stops the bar from being dragged
+* **Marks: Top / Bottom** (horizontal) or **Marks: Left / Right** (vertical): which side of the timer buttons the marks sit on. Each layout remembers its own side
+* **Show Marks**: turns the raid mark strip on or off
+
+The bar fades to 25% when your mouse isn't over it. All settings are saved per character.

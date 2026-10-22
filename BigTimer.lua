@@ -1,6 +1,7 @@
 --[[
-    BigTimer.lua  v1.5
+    BigTimer.lua
     WoW 1.12 / Lua 5 -- requires BigWigs with Pulltimer plugin
+    Includes a QuickMark style raid target icon strip.
 --]]
 
 local ADDON    = "BigTimer"
@@ -9,8 +10,17 @@ local BTN_H    = 26
 local BTN_GAP  = 2
 local PAD      = 5
 local SET_W    = 180
-local SET_H    = 168
+local SET_H    = 196
 local VIS_POLL = 2.0
+
+-- Raid mark strip
+local NUM_MARKS    = 8
+local MARK_MAX     = 28   -- largest an icon is allowed to get
+local MARK_MIN_GAP = 2    -- smallest spacing between icons
+local STRIP_GAP    = 3    -- space between the icon strip and the timer buttons
+local MARK_TEX     = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
+local MARK_NAMES   = { "Star", "Circle", "Diamond", "Triangle",
+                       "Moon", "Square", "Cross", "Skull" }
 
 local DEFAULTS = {
     barAbsX    = 400,
@@ -21,6 +31,9 @@ local DEFAULTS = {
     setAbsX    = nil,
     setAbsY    = nil,
     breakMins  = 3,
+    showMarks  = true,
+    markPosH   = "TOP",    -- TOP or BOTTOM (horizontal bar)
+    markPosV   = "LEFT",   -- LEFT or RIGHT (vertical bar)
 }
 
 BigTimerDB = BigTimerDB or {}
@@ -48,8 +61,18 @@ local function SetFrameAbsPos(f, absX, absY)
     f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", absX / es, absY / es)
 end
 
+-- Raid: leader or assist.  Party (not raid): leader only.
 local function ShouldShow()
-    return GetNumRaidMembers() > 0 and (IsRaidLeader() or IsRaidOfficer())
+    if GetNumRaidMembers() > 0 then
+        return (IsRaidLeader() or IsRaidOfficer()) and true or false
+    end
+    if GetNumPartyMembers() > 0 then
+        if IsPartyLeader and IsPartyLeader() then return true end
+        -- Fallback: party leader index 0 means the player is the leader
+        if GetPartyLeaderIndex and GetPartyLeaderIndex() == 0 then return true end
+        return false
+    end
+    return false
 end
 
 local function FirePull(seconds, isBreak)
@@ -67,9 +90,28 @@ local function FirePull(seconds, isBreak)
     end
 end
 
+-- Same behaviour as QuickMark: clicking the mark already on the target clears it.
+local function ApplyMark(idx)
+    if not UnitExists("target") then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffff6600[BigTimer]|r No target to mark.")
+        return
+    end
+    if idx ~= 0 and GetRaidTargetIndex("target") == idx then
+        SetRaidTarget("target", 0)
+    else
+        SetRaidTarget("target", idx)
+    end
+end
+
 local mainFrame, settingsFrame
 local buttons = {}
+local markButtons = {}
+local markSideBtn
 local UpdateLayout, UpdateVisibility
+
+-- Last layout results, used to keep the timer buttons from moving
+-- when the mark strip is toggled or flipped to the other side.
+local lastBX, lastBY, lastFH = PAD, PAD, 0
 
 -- Hover counter: tracks how many children are under the mouse.
 -- Only fades to 25% when ALL of them have fired OnLeave (count == 0).
@@ -87,25 +129,133 @@ local function OnAnyLeave()
     end
 end
 
+local function MarkSide()
+    if BigTimerDB.horizontal then
+        return BigTimerDB.markPosH
+    end
+    return BigTimerDB.markPosV
+end
+
+local SIDE_LABELS = {
+    TOP    = "Marks: Top",
+    BOTTOM = "Marks: Bottom",
+    LEFT   = "Marks: Left",
+    RIGHT  = "Marks: Right",
+}
+
+local function RefreshMarkSideBtn()
+    if not markSideBtn then return end
+    markSideBtn:SetText(SIDE_LABELS[MarkSide()] or "Marks")
+    if BigTimerDB.showMarks then
+        markSideBtn:Enable()
+    else
+        markSideBtn:Disable()
+    end
+end
+
 UpdateLayout = function()
-    local n, isH = table.getn(buttons), BigTimerDB.horizontal
-    local fw = isH and (PAD*2 + n*BTN_W + (n-1)*BTN_GAP) or (PAD*2 + BTN_W)
-    local fh = isH and (PAD*2 + BTN_H) or (PAD*2 + n*BTN_H + (n-1)*BTN_GAP)
+    local n     = table.getn(buttons)
+    local isH   = BigTimerDB.horizontal
+    local showM = BigTimerDB.showMarks
+
+    -- Length of the timer button group along the bar, and its thickness across it
+    local rowLen, cross
+    if isH then
+        rowLen = n*BTN_W + (n-1)*BTN_GAP
+        cross  = BTN_H
+    else
+        rowLen = n*BTN_H + (n-1)*BTN_GAP
+        cross  = BTN_W
+    end
+
+    -- Size the icons so all 8 always fit inside the length of the timer bar,
+    -- then spread them evenly so the strip lines up with both ends.
+    local mSize, mGap, stripThick = 0, 0, 0
+    if showM then
+        mSize = math.floor((rowLen - (NUM_MARKS-1)*MARK_MIN_GAP) / NUM_MARKS)
+        if mSize > MARK_MAX then mSize = MARK_MAX end
+        if isH and mSize > rowLen then mSize = rowLen end
+        mGap = (rowLen - NUM_MARKS*mSize) / (NUM_MARKS-1)
+        stripThick = mSize + STRIP_GAP
+    end
+
+    -- Offsets from the frame's top left corner (y measured downward)
+    local side = MarkSide()
+    local bx, by, mx, my = PAD, PAD, PAD, PAD
+    local fw, fh
+    if isH then
+        fw = PAD*2 + rowLen
+        fh = PAD*2 + cross + stripThick
+        if showM then
+            if side == "TOP" then
+                by = PAD + stripThick
+            else
+                my = PAD + cross + STRIP_GAP
+            end
+        end
+    else
+        fw = PAD*2 + cross + stripThick
+        fh = PAD*2 + rowLen
+        if showM then
+            if side == "LEFT" then
+                bx = PAD + stripThick
+            else
+                mx = PAD + cross + STRIP_GAP
+            end
+        end
+    end
+
     mainFrame:SetWidth(fw)
     mainFrame:SetHeight(fh)
+
     for i, btn in ipairs(buttons) do
         btn:ClearAllPoints()
         if isH then
             btn:SetPoint("TOPLEFT", mainFrame, "TOPLEFT",
-                PAD + (i-1)*(BTN_W+BTN_GAP), -PAD)
-            btn:SetWidth(BTN_W)
+                bx + (i-1)*(BTN_W+BTN_GAP), -by)
         else
             btn:SetPoint("TOPLEFT", mainFrame, "TOPLEFT",
-                PAD, -(PAD + (i-1)*(BTN_H+BTN_GAP)))
-            btn:SetWidth(fw - PAD*2)
+                bx, -(by + (i-1)*(BTN_H+BTN_GAP)))
         end
+        btn:SetWidth(BTN_W)
         btn:SetHeight(BTN_H)
     end
+
+    for i, mb in ipairs(markButtons) do
+        mb:ClearAllPoints()
+        if showM then
+            mb:SetWidth(mSize)
+            mb:SetHeight(mSize)
+            if isH then
+                mb:SetPoint("TOPLEFT", mainFrame, "TOPLEFT",
+                    mx + (i-1)*(mSize+mGap), -my)
+            else
+                mb:SetPoint("TOPLEFT", mainFrame, "TOPLEFT",
+                    mx, -(my + (i-1)*(mSize+mGap)))
+            end
+            mb:Show()
+        else
+            mb:Hide()
+        end
+    end
+
+    lastBX, lastBY, lastFH = bx, by, fh
+    RefreshMarkSideBtn()
+end
+
+-- Re-layout while holding the timer buttons still on screen.
+-- Used when the mark strip is toggled or moved to the other side,
+-- so only the strip appears to move, not the buttons you aim at.
+local function RelayoutKeepButtons()
+    local oldBX, oldTop = lastBX, lastFH - lastBY
+    local es = mainFrame:GetEffectiveScale()
+    local ax, ay = FrameAbsPos(mainFrame)
+    UpdateLayout()
+    local newTop = lastFH - lastBY
+    ax = ax + (oldBX - lastBX) * es
+    ay = ay + (oldTop - newTop) * es
+    SetFrameAbsPos(mainFrame, ax, ay)
+    BigTimerDB.barAbsX, BigTimerDB.barAbsY = ax, ay
 end
 
 UpdateVisibility = function()
@@ -137,6 +287,46 @@ local function MakeButton(label, tip)
         GameTooltip:Hide()
     end)
     return btn
+end
+
+local function MakeMarkButton(idx)
+    local mb = CreateFrame("Button", nil, mainFrame)
+    mb:SetWidth(MARK_MAX)
+    mb:SetHeight(MARK_MAX)
+    mb:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    local tex = mb:CreateTexture(nil, "ARTWORK")
+    tex:SetAllPoints(mb)
+    tex:SetTexture(MARK_TEX)
+    local col = math.mod(idx - 1, 4)
+    local row = math.floor((idx - 1) / 4)
+    tex:SetTexCoord(col*0.25, col*0.25 + 0.25, row*0.25, row*0.25 + 0.25)
+
+    mb:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    local hl = mb:GetHighlightTexture()
+    if hl then hl:SetBlendMode("ADD") end
+
+    mb:SetScript("OnClick", function()
+        if arg1 == "RightButton" then
+            ApplyMark(0)
+        else
+            ApplyMark(idx)
+        end
+    end)
+    mb:SetScript("OnEnter", function()
+        OnAnyEnter()
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText(
+            "Mark target: "..MARK_NAMES[idx].."\n"..
+            "|cffaaaaaaClick again to remove.  Right-click clears any mark.|r",
+            1, 1, 1)
+        GameTooltip:Show()
+    end)
+    mb:SetScript("OnLeave", function()
+        OnAnyLeave()
+        GameTooltip:Hide()
+    end)
+    return mb
 end
 
 local function BuildSettingsFrame()
@@ -218,9 +408,9 @@ local function BuildSettingsFrame()
         BigTimerDB.barAbsX, BigTimerDB.barAbsY = absX, absY
     end)
 
-    -- Orientation button
+    -- Row 1: orientation button + lock checkbox
     local oBtn = CreateFrame("Button","BigTimerOrientBtn",f,"UIPanelButtonTemplate")
-    oBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 8, 10)
+    oBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 8, 36)
     oBtn:SetWidth(90)
     oBtn:SetHeight(20)
     oBtn:SetText(BigTimerDB.horizontal and "Vertical" or "Horizontal")
@@ -230,13 +420,12 @@ local function BuildSettingsFrame()
         UpdateLayout()
     end)
 
-    -- Lock checkbox
     local lLbl = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    lLbl:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -28, 15)
+    lLbl:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -28, 41)
     lLbl:SetText("Lock Bar")
 
     local lCB = CreateFrame("CheckButton","BigTimerLockCB",f,"UICheckButtonTemplate")
-    lCB:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, 8)
+    lCB:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, 34)
     lCB:SetWidth(22)
     lCB:SetHeight(22)
     lCB:SetChecked(BigTimerDB.locked and 1 or nil)
@@ -245,6 +434,52 @@ local function BuildSettingsFrame()
         mainFrame:SetMovable(not BigTimerDB.locked)
     end)
 
+    -- Row 2: mark strip side button + show marks checkbox
+    markSideBtn = CreateFrame("Button","BigTimerMarkSideBtn",f,"UIPanelButtonTemplate")
+    markSideBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 8, 10)
+    markSideBtn:SetWidth(90)
+    markSideBtn:SetHeight(20)
+    markSideBtn:SetScript("OnClick", function()
+        if BigTimerDB.horizontal then
+            if BigTimerDB.markPosH == "TOP" then
+                BigTimerDB.markPosH = "BOTTOM"
+            else
+                BigTimerDB.markPosH = "TOP"
+            end
+        else
+            if BigTimerDB.markPosV == "LEFT" then
+                BigTimerDB.markPosV = "RIGHT"
+            else
+                BigTimerDB.markPosV = "LEFT"
+            end
+        end
+        RelayoutKeepButtons()
+    end)
+    markSideBtn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText(
+            "Which side of the bar the raid marks sit on.\n"..
+            "|cffaaaaaaHorizontal and vertical remember their own side.|r",
+            1, 1, 1)
+        GameTooltip:Show()
+    end)
+    markSideBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    local mLbl = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    mLbl:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -28, 15)
+    mLbl:SetText("Show Marks")
+
+    local mCB = CreateFrame("CheckButton","BigTimerMarksCB",f,"UICheckButtonTemplate")
+    mCB:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, 8)
+    mCB:SetWidth(22)
+    mCB:SetHeight(22)
+    mCB:SetChecked(BigTimerDB.showMarks and 1 or nil)
+    mCB:SetScript("OnClick", function()
+        BigTimerDB.showMarks = (this:GetChecked() == 1)
+        RelayoutKeepButtons()
+    end)
+
+    RefreshMarkSideBtn()
     return f
 end
 
@@ -328,7 +563,7 @@ local function OnLoad()
     buttons[table.getn(buttons)+1] = brkBtn
 
     -- Ready check button
-    local readyBtn = MakeButton("Ready", "Send a ready check to the raid")
+    local readyBtn = MakeButton("Ready", "Send a ready check")
     readyBtn:SetScript("OnClick", function() DoReadyCheck() end)
     buttons[table.getn(buttons)+1] = readyBtn
 
@@ -342,6 +577,11 @@ local function OnLoad()
     local cfgBtn = MakeButton("Cfg", "Open BigTimer settings")
     cfgBtn:SetScript("OnClick", function() OpenSettings() end)
     buttons[table.getn(buttons)+1] = cfgBtn
+
+    -- Raid target icons, laid out Skull .. Star
+    for i = 1, NUM_MARKS do
+        markButtons[i] = MakeMarkButton(NUM_MARKS + 1 - i)
+    end
 
     settingsFrame = BuildSettingsFrame()
     UpdateLayout()
@@ -358,7 +598,7 @@ local function OnLoad()
     mainFrame:SetAlpha(0.25)
 
     DEFAULT_CHAT_FRAME:AddMessage(
-        "|cffffff66[BigTimer]|r Loaded. Bar appears when you have raid lead or assist.")
+        "|cffffff66[BigTimer]|r Loaded. Bar appears with raid lead/assist, or party lead.")
 end
 
 local boot = CreateFrame("Frame")
