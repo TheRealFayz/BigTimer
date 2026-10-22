@@ -1,6 +1,6 @@
 # BigTimer
 
-![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer.png?raw=true) ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer2.png?raw=true) ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer3.png?raw=true)
+![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer3.png?raw=true) ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer.png?raw=true) ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer2.png?raw=true)
 
 A quick-access pull timer toolbar for **World of Warcraft 1.12** (Turtle WoW), with built-in raid target marking.
 Requires the **BigWigs** addon with its Pulltimer plugin enabled.
