@@ -5,6 +5,8 @@
 A quick-access pull timer toolbar for **World of Warcraft 1.12** (Turtle WoW), with built-in raid target marking.
 Requires the **BigWigs** addon with its Pulltimer plugin enabled.
 
+You can also download BigTimer from OctoWoW's [Gitea](https://octowow.st/git/Fayz/BigTimer).
+
 ## Requirements
 | Requirement | Notes |
 |---|---|
