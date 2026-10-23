@@ -1,11 +1,9 @@
 # BigTimer
 
-![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer3.png?raw=true) ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer.png?raw=true) ![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer2.png?raw=true)
+![BigTimer](https://github.com/TheRealFayz/BigTimer/blob/main/Images/BigTimer.png?raw=true)
 
 A quick-access pull timer toolbar for **World of Warcraft 1.12** (Turtle WoW), with built-in raid target marking.
 Requires the **BigWigs** addon with its Pulltimer plugin enabled.
-
-You can also download BigTimer from OctoWoW's [Gitea](https://octowow.st/git/Fayz/BigTimer).
 
 ## Requirements
 | Requirement | Notes |
@@ -31,11 +29,11 @@ The bar hides itself when you are not in a group, or don't have the role above.
 | **Cfg** | Opens the settings window |
 
 ## Raid Marks
-A strip of the 8 raid target icons sits inside the bar, in order from Skull to Star (Skull is always on the left, or on top when the bar is vertical).
+A strip of the 8 raid target icons sits inside the bar, in order from Skull to Star (Skull is always on the left, or on top when the bar is vertical), followed by a clear button.
 
 * **Left-click** an icon to put that mark on your target
 * **Left-click the same icon again** to remove it
-* **Right-click** any icon to clear your target's mark
+* **Right-click** any icon, or click the **clear** button at the end, to clear your target's mark
 
 The icons scale to fit the length of the bar and share its border.
 

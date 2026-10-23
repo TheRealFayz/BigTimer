@@ -168,14 +168,14 @@ UpdateLayout = function()
         cross  = BTN_W
     end
 
-    -- Size the icons so all 8 always fit inside the length of the timer bar,
-    -- then spread them evenly so the strip lines up with both ends.
+    -- Size the icons (8 marks + clear) so they always fit inside the length
+    -- of the timer bar, then spread them evenly so the strip lines up with both ends.
+    local nM = table.getn(markButtons)
     local mSize, mGap, stripThick = 0, 0, 0
     if showM then
-        mSize = math.floor((rowLen - (NUM_MARKS-1)*MARK_MIN_GAP) / NUM_MARKS)
+        mSize = math.floor((rowLen - (nM-1)*MARK_MIN_GAP) / nM)
         if mSize > MARK_MAX then mSize = MARK_MAX end
-        if isH and mSize > rowLen then mSize = rowLen end
-        mGap = (rowLen - NUM_MARKS*mSize) / (NUM_MARKS-1)
+        mGap = (rowLen - nM*mSize) / (nM-1)
         stripThick = mSize + STRIP_GAP
     end
 
@@ -327,6 +327,34 @@ local function MakeMarkButton(idx)
         GameTooltip:Hide()
     end)
     return mb
+end
+
+local function MakeClearButton()
+    local cb = CreateFrame("Button", nil, mainFrame)
+    cb:SetWidth(MARK_MAX)
+    cb:SetHeight(MARK_MAX)
+    cb:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    local tex = cb:CreateTexture(nil, "ARTWORK")
+    tex:SetAllPoints(cb)
+    tex:SetTexture("Interface\\AddOns\\BigTimer\\Textures\\ClearMark")
+
+    cb:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    local hl = cb:GetHighlightTexture()
+    if hl then hl:SetBlendMode("ADD") end
+
+    cb:SetScript("OnClick", function() ApplyMark(0) end)
+    cb:SetScript("OnEnter", function()
+        OnAnyEnter()
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText("Clear target's mark", 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    cb:SetScript("OnLeave", function()
+        OnAnyLeave()
+        GameTooltip:Hide()
+    end)
+    return cb
 end
 
 local function BuildSettingsFrame()
@@ -582,6 +610,8 @@ local function OnLoad()
     for i = 1, NUM_MARKS do
         markButtons[i] = MakeMarkButton(NUM_MARKS + 1 - i)
     end
+    -- Clear button at the end of the strip (red no symbol, like QuickMark)
+    markButtons[NUM_MARKS + 1] = MakeClearButton()
 
     settingsFrame = BuildSettingsFrame()
     UpdateLayout()
