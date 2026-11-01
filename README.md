@@ -50,3 +50,14 @@ Click **Cfg** to open the settings window. You can drag it anywhere and close it
 * **Show Marks**: turns the raid mark strip on or off
 
 The bar fades to 25% when your mouse isn't over it. All settings are saved per character.
+
+## More addons by Fayz
+
+All for OctoWoW and other 1.12 clients. A star on any of them is appreciated.
+
+- **[TotemNesia](https://github.com/TheRealFayz/TotemNesia)** is a totem management addon for Shaman.
+- **[SHAlts](https://github.com/TheRealFayz/SHAlts)** is an alt manager for OctoWoW and other 1.12 clients. It keeps track of everything your characters own and lets you look at any of them from one window, no matter which character you are playing.
+- **[Arcanum](https://github.com/TheRealFayz/Arcanum)** helps Mages manage their spells and items.
+- **[AutoSpam](https://github.com/TheRealFayz/AutoSpam)** posts your messages to chat channels at the interval you choose, from 1 to 10 minutes.
+- **[SHPlates](https://github.com/TheRealFayz/SHPlates)** is a highly customizable nameplate addon. Server threat, cast bars, debuff timers, combo points, raid marks and per-spec settings. Know who has aggro before the mob gets to your healer.
+- **[TimeToDrink](https://github.com/TheRealFayz/TimeToDrink)** tells the tank when the healer is low on mana. It watches the healer you choose and posts a warning to party chat when their mana drops below your threshold.
